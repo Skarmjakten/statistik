@@ -1,6 +1,6 @@
-module github.com/salkin/skarmjakten/resultstats
+module github.com/skarmjakten/statistik
 
-go 1.13
+go 1.16
 
 require (
 	github.com/benhoyt/goawk v1.6.1

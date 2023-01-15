@@ -36,19 +36,24 @@ type Course struct {
 	Starts int    `json:"starts"`
 }
 
+type Competitor struct {
+	Name   string `json:"name"`
+	Starts int    `json:starts`
+}
+
 var count map[string]int
 var course map[string]int
+
+var competitior map[string]int
 
 var result Result
 
 func main() {
-
 	year := os.Args[1]
 
 	count = make(map[string]int)
 	course = make(map[string]int)
-
-	program, err := http.Get("https://raw.githubusercontent.com/Skarmjakten/website/main/data/program/" + year + ".yaml")
+	competitior = make(map[string]int)
 
 	for i := 1; i < 25; i++ {
 		doc := strconv.Itoa(i)
@@ -77,9 +82,17 @@ func main() {
 	}
 
 	fmt.Printf("Total: %v\n", result.TotalStarts)
+
 	data, _ := json.Marshal(result)
+
 	ioutil.WriteFile("result.json", data, 0755)
 
+	starts := ""
+	for k, v := range competitior {
+		starts = fmt.Sprintf("%v\n%v starts: %v", starts, k, v)
+	}
+
+	ioutil.WriteFile("starts.txt", []byte(starts), 0755)
 }
 
 func parseResp(resp *http.Response, name string) {
@@ -136,7 +149,6 @@ func parseResp(resp *http.Response, name string) {
 			}
 		}
 	}
-
 }
 
 func parseCourseName(z *html.Tokenizer) string {
@@ -156,12 +168,12 @@ func parseCourseName(z *html.Tokenizer) string {
 	bana = b.ReplaceAllString(bana, "")
 	bana = strings.ReplaceAll(bana, "-", "")
 	bana = strings.TrimSpace(bana)
-	fmt.Printf("Bana: '%v' from '%v'\n", bana, data)
+	//fmt.Printf("Bana: '%v' from '%v'\n", bana, data)
+
 	return bana
 }
 
 func parseCourse(z html.Token) int {
-
 	courseCount := 0
 	buf := bytes.NewBufferString(z.Data)
 	reader := bufio.NewReader(buf)
@@ -175,6 +187,8 @@ func parseCourse(z html.Token) int {
 		isResult := reg.FindString(string(li))
 		if isResult != "" {
 			addCount(count, string(line))
+
+			compCount(competitior, string(line))
 			courseCount++
 		}
 	}
@@ -182,8 +196,32 @@ func parseCourse(z html.Token) int {
 	return courseCount
 }
 
-func addCount(m map[string]int, line string) {
+func compCount(m map[string]int, line string) {
+	first := strings.ToLower(AwkColumn(line, 2))
+	last := strings.ToLower(AwkColumn(line, 3))
+	comp := first + " " + last
+	invert := last + " " + first
 
+	if _, ok := m[comp]; ok {
+		m[comp] = m[comp] + 1
+
+		return
+	}
+
+	if _, ok := m[invert]; ok {
+		m[invert] = m[invert] + 1
+
+		return
+	}
+
+	if _, ok := m[comp]; !ok {
+		m[comp] = 1
+
+		return
+	}
+}
+
+func addCount(m map[string]int, line string) {
 	club := strings.ToLower(AwkColumn(line, 4))
 	r := regexp.MustCompile("^[a-zA-Z]")
 	if club != "" {
